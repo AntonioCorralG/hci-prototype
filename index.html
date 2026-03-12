@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>iPhone Notification Prototypes — HCI</title>
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+
+:root {
+  --blue:#007AFF; --red:#FF3B30; --green:#34C759;
+  --orange:#FF9500; --gray:#8E8E93; --purple:#AF52DE;
+  --card:rgba(50,50,55,0.9); --dark:#1c1c1e;
+}
+
+body {
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+  min-height:100vh; display:flex; flex-direction:column;
+  align-items:center; padding:24px 16px 40px;
+}
+
+/* ── Page header ── */
+.page-header { text-align:center; margin-bottom:24px; }
+.page-header h1 { font-size:20px; font-weight:700; color:white; letter-spacing:-.4px; }
+.page-header p { font-size:12px; color:rgba(255,255,255,.45); margin-top:4px; }
+
+/* ── Tabs ── */
+.tabs {
+  display:flex; gap:6px; margin-bottom:24px;
+  background:rgba(255,255,255,.08); border-radius:12px; padding:4px;
+}
+.tab {
+  padding:7px 18px; border-radius:9px; font-size:13px; font-weight:600;
+  cursor:pointer; border:none; background:transparent;
+  color:rgba(255,255,255,.45); transition:all .2s;
+}
+.tab.active { background:white; color:#1a1a2e; }
+
+/* ── iPhone shell ── */
+.phone-outer { display:flex; flex-direction:column; align-items:center; gap:14px; }
+.design-label { color:rgba(255,255,255,.75); font-size:13px; font-weight:600; text-align:center; }
+.design-desc { color:rgba(255,255,255,.38); font-size:11px; text-align:center; max-width:300px; line-height:1.5; margin-top:2px; }
+
+.iphone {
+  width:310px; height:620px;
+  background:#000; border-radius:50px;
+  border:2px solid rgba(255,255,255,.12);
+  box-shadow:0 40px 80px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,255,255,.04);
+  overflow:hidden; position:relative;
+}
+
+/* ── Screens ── */
+.screen {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  background:linear-gradient(165deg,#1c1c2e 0%,#000 100%);
+  transform:translateX(100%); opacity:0;
+  transition:transform .35s cubic-bezier(.4,0,.2,1), opacity .35s;
+  overflow:hidden;
+}
+.screen.active { transform:translateX(0); opacity:1; }
+.screen.slide-left { transform:translateX(-30%); opacity:0; }
+
+/* ── Status bar ── */
+.status-bar {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 24px 0; flex-shrink:0; position:relative; z-index:5;
+}
+.st { font-size:15px; font-weight:600; color:white; }
+.si { display:flex; gap:5px; align-items:center; }
+.si svg { width:15px; height:12px; fill:white; }
+
+/* ── Lock wallpaper ── */
+.lockbg {
+  position:absolute; inset:0; z-index:0;
+  background:linear-gradient(175deg,#0d1b4b 0%,#1a0533 55%,#050510 100%);
+}
+.lock-time-block {
+  position:relative; z-index:1; text-align:center;
+  padding:16px 0 12px; flex-shrink:0;
+}
+.lt { font-size:60px; font-weight:200; color:white; letter-spacing:-2px; line-height:1; }
+.ld { font-size:14px; color:rgba(255,255,255,.65); margin-top:3px; }
+
+/* ── Notification center header ── */
+.nc-header {
+  position:relative; z-index:1; flex-shrink:0;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 18px 4px;
+}
+.nc-title { font-size:13px; font-weight:700; color:rgba(255,255,255,.5); letter-spacing:.3px; text-transform:uppercase; }
+.nc-btn {
+  font-size:12px; font-weight:600; color:var(--orange);
+  background:rgba(255,149,0,.12); border:1px solid rgba(255,149,0,.25);
+  border-radius:10px; padding:3px 10px; cursor:pointer; border:none;
+  color:var(--orange); background:rgba(255,149,0,.15);
+}
+
+/* ── Notification list ── */
+.notif-list {
+  position:relative; z-index:1; flex:1; overflow-y:auto;
+  padding:0 12px; display:flex; flex-direction:column; gap:8px;
+  padding-bottom:8px;
+}
+
+/* ── Swipeable notification card ── */
+.notif-wrap {
+  position:relative; border-radius:16px; overflow:hidden;
+  flex-shrink:0;
+}
+/* action backgrounds sit behind the card */
+.action-bg {
+  position:absolute; inset:0; border-radius:16px;
+  display:flex; align-items:center;
+}
+.action-bg.left-actions {
+  justify-content:flex-end;
+  background:linear-gradient(90deg, transparent 0%, rgba(255,59,48,.85) 40%);
+}
+.action-bg.right-actions {
+  justify-content:flex-start;
+  background:linear-gradient(270deg, transparent 0%, rgba(0,122,255,.85) 40%);
+}
+.action-btns-right {
+  display:flex; flex-direction:row; gap:6px; padding:0 10px;
+}
+.action-btns-left {
+  display:flex; flex-direction:row; gap:6px; padding:0 10px;
+}
+.act-btn {
+  padding:8px 12px; border-radius:10px; border:none;
+  font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; color:white;
+}
+.act-clear { background:var(--red); }
+.act-options { background:var(--gray); }
+.act-batch { background:var(--blue); }
+
+.notif-card {
+  position:relative; z-index:2;
+  background:var(--card); backdrop-filter:blur(20px);
+  border-radius:16px; padding:11px 13px;
+  cursor:pointer; touch-action:pan-y;
+  will-change:transform;
+  transition:none; /* transitions set via JS */
+}
+.notif-card.animating { transition:transform .25s cubic-bezier(.4,0,.2,1); }
+
+.nh { display:flex; align-items:center; gap:7px; margin-bottom:3px; }
+.app-icon {
+  width:20px; height:20px; border-radius:5px;
+  display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0;
+}
+.app-name { font-size:11px; font-weight:600; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.3px; flex:1; }
+.n-time { font-size:11px; color:rgba(255,255,255,.35); }
+.n-title { font-size:14px; font-weight:600; color:white; }
+.n-body { font-size:12px; color:rgba(255,255,255,.6); margin-top:2px; line-height:1.35; }
+
+/* ── Batch tray ── */
+.batch-section { position:relative; z-index:1; padding:4px 12px 6px; flex-shrink:0; }
+.section-label {
+  font-size:11px; font-weight:700; color:rgba(255,255,255,.38);
+  text-transform:uppercase; letter-spacing:.7px; padding:0 2px 5px;
+}
+.batch-row {
+  background:rgba(0,122,255,.14); border:1px solid rgba(0,122,255,.28);
+  border-radius:14px; padding:10px 13px;
+  display:flex; align-items:center; gap:10px;
+}
+.batch-row .app-icon { width:28px; height:28px; border-radius:8px; font-size:14px; }
+.b-text { flex:1; }
+.b-title { font-size:13px; font-weight:600; color:white; }
+.b-sub { font-size:11px; color:rgba(255,255,255,.45); }
+.b-time { font-size:11px; font-weight:700; color:var(--blue); }
+
+/* ── Quiet tray ── */
+.quiet-section { position:relative; z-index:1; padding:4px 12px 6px; flex-shrink:0; }
+.quiet-row {
+  background:rgba(255,149,0,.1); border:1px solid rgba(255,149,0,.2);
+  border-radius:14px; padding:10px 13px;
+  display:flex; align-items:center; gap:10px; cursor:pointer;
+  opacity:.75;
+}
+.quiet-row .app-icon { width:28px; height:28px; border-radius:8px; font-size:14px; }
+
+/* ── Quiet panel (slides in from right) ── */
+.quiet-panel {
+  position:absolute; inset:0; z-index:20;
+  background:var(--dark); display:flex; flex-direction:column;
+  transform:translateX(100%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.quiet-panel.open { transform:translateX(0); }
+.qp-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:50px 18px 12px;
+}
+.qp-title { font-size:17px; font-weight:700; color:white; }
+.qp-back {
+  font-size:14px; font-weight:600; color:var(--blue);
+  background:none; border:none; cursor:pointer;
+}
+.qp-sub { font-size:12px; color:rgba(255,255,255,.4); padding:0 18px 12px; line-height:1.4; }
+.qp-list { flex:1; overflow-y:auto; padding:0 12px; display:flex; flex-direction:column; gap:8px; }
+
+/* ── Widgets panel ── */
+.widgets-panel {
+  position:absolute; inset:0; z-index:15;
+  background:rgba(15,12,41,.92); backdrop-filter:blur(30px);
+  display:flex; flex-direction:column;
+  transform:translateX(-100%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+  padding:60px 16px 20px;
+}
+.widgets-panel.open { transform:translateX(0); }
+.wp-title { font-size:13px; font-weight:700; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.7px; margin-bottom:14px; }
+.widget-card {
+  background:rgba(255,255,255,.08); border-radius:20px; padding:16px;
+  margin-bottom:10px; border:1px solid rgba(255,255,255,.08);
+}
+.widget-card .wt { font-size:11px; font-weight:600; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; }
+.widget-card .wv { font-size:28px; font-weight:300; color:white; }
+.widget-card .ws { font-size:12px; color:rgba(255,255,255,.5); margin-top:2px; }
+.wp-hint { font-size:11px; color:rgba(255,255,255,.3); text-align:center; margin-top:8px; }
+
+/* ── Banner ── */
+.banner {
+  position:absolute; top:58px; left:10px; right:10px; z-index:20;
+  background:rgba(44,44,46,.97); backdrop-filter:blur(20px);
+  border-radius:16px; padding:11px 13px;
+  box-shadow:0 8px 30px rgba(0,0,0,.5);
+  transform:translateY(-130px); opacity:0;
+  transition:all .4s cubic-bezier(.34,1.2,.64,1);
+}
+.banner.show { transform:translateY(0); opacity:1; }
+.banner-actions { display:flex; gap:7px; margin-top:8px; }
+.banner-btn {
+  flex:1; padding:7px 4px; border-radius:10px; border:none;
+  font-size:12px; font-weight:700; cursor:pointer; color:white;
+}
+.bb-view { background:var(--blue); }
+.bb-batch { background:rgba(255,255,255,.15); }
+
+/* ── Home screen ── */
+.app-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; padding:12px 18px; flex:1; }
+.app-item { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.app-item .icon { width:50px; height:50px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; }
+.app-item span { font-size:10px; color:white; text-align:center; }
+
+/* ── Bottom ── */
+.bottom-bar { flex-shrink:0; padding:8px 0 20px; display:flex; justify-content:center; position:relative; z-index:5; }
+.home-ind { width:120px; height:5px; background:rgba(255,255,255,.28); border-radius:3px; }
+
+/* ── Toast ── */
+.toast {
+  position:absolute; bottom:68px; left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:rgba(44,44,46,.96); color:white;
+  font-size:13px; font-weight:500; padding:9px 18px; border-radius:20px;
+  opacity:0; transition:all .3s; white-space:nowrap; z-index:100; pointer-events:none;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── Step dots ── */
+.step-nav { display:flex; gap:6px; justify-content:center; margin-top:12px; }
+.dot {
+  width:7px; height:7px; border-radius:50%;
+  background:rgba(255,255,255,.25); transition:all .2s; cursor:pointer;
+}
+.dot.active { background:white; width:20px; border-radius:4px; }
+
+.nav-hint { color:rgba(255,255,255,.3); font-size:11px; text-align:center; margin-top:6px; }
+.callout {
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09);
+  border-radius:12px; padding:10px 14px; color:rgba(255,255,255,.55);
+  font-size:12px; max-width:310px; text-align:center; line-height:1.5; margin-top:2px;
+}
+.callout strong { color:rgba(255,255,255,.85); }
+
+/* ── Proto visibility ── */
+.proto { display:none; }
+.proto.active { display:flex; flex-direction:column; align-items:center; gap:6px; }
+
+/* ── Util ── */
+.dismissed { display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Notification Prototypes</h1>
+  <p>HCI Individual Project — Gonzalo Corral Galindo</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showProto(0)">Design 3</button>
+  <button class="tab" onclick="showProto(1)">Design 9</button>
+  <button class="tab" onclick="showProto(2)">Design 10</button>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     DESIGN 3 — Right Swipe to Batch
+     ═══════════════════════════════════════════ -->
+<div class="proto active" id="proto0">
+  <div class="design-label">Design 3 — Right Swipe to Batch</div>
+  <div class="design-desc">Short right swipe reveals a Batch button. Full right swipe auto-batches. Left swipe shows Options/Clear (existing iOS behavior). Swipe right on empty area for widgets.</div>
+
+  <div class="phone-outer">
+    <div class="iphone" id="d3-phone">
+
+      <!-- Widgets panel (swipe right on empty area) -->
+      <div class="widgets-panel" id="d3-widgets">
+        <div class="wp-title">Today's Widgets</div>
+        <div class="widget-card">
+          <div class="wt">Weather</div>
+          <div class="wv">72°F ☀️</div>
+          <div class="ws">San Jose · Sunny</div>
+        </div>
+        <div class="widget-card">
+          <div class="wt">Calendar</div>
+          <div class="wv">2 events</div>
+          <div class="ws">HCI class 3pm · Team sync 5pm</div>
+        </div>
+        <div class="widget-card">
+          <div class="wt">Reminders</div>
+          <div class="wv">3 due today</div>
+          <div class="ws">Submit check-in · Email advisor · ...</div>
+        </div>
+        <div class="wp-hint">← Swipe left to return to notifications</div>
+      </div>
+
+      <!-- SCREEN 1: Lock screen with notifications -->
+      <div class="screen active" id="d3s1">
+        <div class="lockbg"></div>
+        <div class="status-bar">
+          <span class="st">9:41</span>
+          <div class="si">
+            <svg viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1" opacity=".3"/></svg>
+            <svg viewBox="0 0 16 12"><path d="M8 2.5C10.5 2.5 12.7 3.5 14.3 5.2L16 3.5C13.9 1.3 11.1 0 8 0S2.1 1.3 0 3.5L1.7 5.2C3.3 3.5 5.5 2.5 8 2.5z"/><path d="M8 6C9.7 6 11.2 6.7 12.3 7.8L14 6.1C12.4 4.5 10.3 3.5 8 3.5S3.6 4.5 2 6.1L3.7 7.8C4.8 6.7 6.3 6 8 6z"/><circle cx="8" cy="10" r="2"/></svg>
+          </div>
+        </div>
+        <div class="lock-time-block">
+          <div class="lt">9:41</div>
+          <div class="ld">Tuesday, March 11</div>
+        </div>
+
+        <div class="nc-header"><span class="nc-title">Notification Center</span></div>
+
+        <div class="notif-list" id="d3-list">
+
+          <!-- Swipeable card: Facebook -->
+          <div class="notif-wrap" id="wrap-fb">
+            <div class="action-bg right-actions">
+              <div class="action-btns-right">
+                <button class="act-btn act-batch" onclick="autoBatch('wrap-fb','fb')">📥 Batch</button>
+              </div>
+            </div>
+            <div class="action-bg left-actions">
+              <div class="action-btns-left">
+                <button class="act-btn act-options" onclick="showToast('d3-toast','⚙️ Options')">Options</button>
+                <button class="act-btn act-clear" onclick="dismissCard('wrap-fb')">Clear</button>
+              </div>
+            </div>
+            <div class="notif-card" id="card-fb"
+              data-wrap="wrap-fb" data-id="fb"
+              data-right-label="📥 Batch" data-left-label="Options / Clear">
+              <div class="nh">
+                <div class="app-icon" style="background:#1877F2">📘</div>
+                <span class="app-name">Facebook</span>
+                <span class="n-time">now</span>
+              </div>
+              <div class="n-title">Maria liked your photo</div>
+              <div class="n-body">Swipe → short for Batch btn · long to auto-batch · ← for Options/Clear</div>
+            </div>
+          </div>
+
+          <!-- Swipeable card: WhatsApp -->
+          <div class="notif-wrap" id="wrap-wa">
+            <div class="action-bg right-actions">
+              <div class="action-btns-right">
+                <button class="act-btn act-batch" onclick="autoBatch('wrap-wa','wa')">📥 Batch</button>
+              </div>
+            </div>
+            <div class="action-bg left-actions">
+              <div class="action-btns-left">
+                <button class="act-btn act-options" onclick="showToast('d3-toast','⚙️ Options')">Options</button>
+                <button class="act-btn act-clear" onclick="dismissCard('wrap-wa')">Clear</button>
+              </div>
+            </div>
+            <div class="notif-card" id="card-wa" data-wrap="wrap-wa" data-id="wa">
+              <div class="nh">
+                <div class="app-icon" style="background:#25D366">💬</div>
+                <span class="app-name">WhatsApp</span>
+                <span class="n-time">2m</span>
+              </div>
+              <div class="n-title">Carlos: "Are you coming tonight?"</div>
+              <div class="n-body">Swipe right to batch · left for Options/Clear</div>
+            </div>
+          </div>
+
+          <!-- Swipeable card: Instagram -->
+          <div class="notif-wrap" id="wrap-ig">
+            <div class="action-bg right-actions">
+              <div class="action-btns-right">
+                <button class="act-btn act-batch" onclick="autoBatch('wrap-ig','ig')">📥 Batch</button>
+              </div>
+            </div>
+            <div class="action-bg left-actions">
+              <div class="action-btns-left">
+                <button class="act-btn act-options" onclick="showToast('d3-toast','⚙️ Options')">Options</button>
+                <button class="act-btn act-clear" onclick="dismissCard('wrap-ig')">Clear</button>
+              </div>
+            </div>
+            <div class="notif-card" id="card-ig" data-wrap="wrap-ig" data-id="ig">
+              <div class="nh">
+                <div class="app-icon" style="background:#E1306C">📸</div>
+                <span class="app-name">Instagram</span>
+                <span class="n-time">5m</span>
+              </div>
+              <div class="n-title">3 people liked your story</div>
+              <div class="n-body">Swipe right to batch · left for Options/Clear</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="bottom-bar"><div class="home-ind"></div></div>
+        <div class="toast" id="d3-toast"></div>
+      </div>
+
+      <!-- SCREEN 2: After batch — shows batch tray -->
+      <div class="screen" id="d3s2">
+        <div class="lockbg"></div>
+        <div class="status-bar"><span class="st">9:41</span></div>
+        <div class="lock-time-block"><div class="lt">9:41</div><div class="ld">Tuesday, March 11</div></div>
+        <div class="nc-header"><span class="nc-title">Notification Center</span></div>
+        <div class="notif-list">
+          <div class="notif-wrap">
+            <div class="notif-card">
+              <div class="nh"><div class="app-icon" style="background:#25D366">💬</div><span class="app-name">WhatsApp</span><span class="n-time">2m</span></div>
+              <div class="n-title">Carlos: "Are you coming tonight?"</div>
+            </div>
+          </div>
+          <div class="notif-wrap">
+            <div class="notif-card">
+              <div class="nh"><div class="app-icon" style="background:#E1306C">📸</div><span class="app-name">Instagram</span><span class="n-time">5m</span></div>
+              <div class="n-title">3 people liked your story</div>
+            </div>
+          </div>
+        </div>
+        <div class="batch-section">
+          <div class="section-label">📥 Batched for Later</div>
+          <div class="batch-row">
+            <div class="app-icon" style="background:#1877F2;width:28px;height:28px;border-radius:8px;font-size:14px">📘</div>
+            <div class="b-text">
+              <div class="b-title">Facebook · 1 notification</div>
+              <div class="b-sub">Maria liked your photo</div>
+            </div>
+            <div class="b-time">6 PM</div>
+          </div>
+        </div>
+        <div class="bottom-bar"><div class="home-ind"></div></div>
+        <div class="toast" id="d3-toast2"></div>
+      </div>
+
+      <!-- SCREEN 3: 6pm batch delivery -->
+      <div class="screen" id="d3s3">
+        <div class="lockbg" style="background:linear-gradient(175deg,#0d3b1b,#041208)"></div>
+        <div class="status-bar"><span class="st">6:00</span></div>
+        <div class="lock-time-block"><div class="lt">6:00</div><div class="ld">Batch Delivered</div></div>
+        <div class="nc-header"><span class="nc-title">Notification Center</span></div>
+        <div class="notif-list">
+          <div class="notif-wrap">
+            <div class="notif-card" style="background:rgba(0,122,255,.15);border:1px solid rgba(0,122,255,.28)">
+              <div class="nh"><div class="app-icon" style="background:#1877F2">📘</div><span class="app-name">Facebook</span><span class="n-time">batched</span></div>
+              <div class="n-title">Maria liked your photo</div>
+              <div class="n-body">Batched at 9:41 AM · delivered now at 6:00 PM</div>
+            </div>
+          </div>
+          <div class="notif-wrap">
+            <div class="notif-card" style="background:rgba(0,122,255,.1);border:1px solid rgba(0,122,255,.18)">
+              <div class="nh"><div class="app-icon" style="background:#007AFF">📥</div><span class="app-name">Batch Summary</span><span class="n-time">now</span></div>
+              <div class="n-title">1 batched notification delivered</div>
+              <div class="n-body">Tap to manage your batch schedule</div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-bar"><div class="home-ind"></div></div>
+      </div>
+
+    </div><!-- /iphone -->
+
+    <div class="step-nav">
+      <div class="dot active" onclick="d3goto(0)"></div>
+      <div class="dot" onclick="d3goto(1)"></div>
+      <div class="dot" onclick="d3goto(2)"></div>
+    </div>
+    <div class="nav-hint">Swipe the notification cards · right area swipes to widgets</div>
+    <div class="callout">
+      <strong>Short right swipe</strong> → shows Batch button &nbsp;|&nbsp; <strong>Full right swipe</strong> → auto-batches<br>
+      <strong>Left swipe</strong> → Options / Clear (existing iOS pattern)<br>
+      <strong>Swipe right on empty area</strong> → widgets view
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     DESIGN 9 — Batch Updates Hybrid
+     ═══════════════════════════════════════════ -->
+<div class="proto" id="proto1">
+  <div class="design-label">Design 9 — Batch Updates Hybrid</div>
+  <div class="design-desc">Incoming banners offer View Now or Batch for Later. Batched notifications deliver at a scheduled time.</div>
+  <div class="phone-outer">
+    <div class="iphone">
+
+      <!-- SCREEN 1: Home screen -->
+      <div class="screen active" id="d9s1">
+        <div class="status-bar"><span class="st">9:41</span></div>
+        <div class="app-grid">
+          <div class="app-item"><div class="icon" style="background:#25D366">💬</div><span>Messages</span></div>
+          <div class="app-item"><div class="icon" style="background:#1877F2">📘</div><span>Facebook</span></div>
+          <div class="app-item"><div class="icon" style="background:#E1306C">📸</div><span>Instagram</span></div>
+          <div class="app-item"><div class="icon" style="background:#FF2D55">🎵</div><span>Music</span></div>
+          <div class="app-item"><div class="icon" style="background:#0071E3">🗺</div><span>Maps</span></div>
+          <div class="app-item"><div class="icon" style="background:#5AC8FA">🌤</div><span>Weather</span></div>
+          <div class="app-item"><div class="icon" style="background:#FF9500">📦</div><span>Grubhub</span></div>
+          <div class="app-item"><div class="icon" style="background:#34C759">💰</div><span>Venmo</span></div>
+        </div>
+        <!-- Banner -->
+        <div class="banner" id="d9-banner">
+          <div class="nh"><div class="app-icon" style="background:#FF9500">📦</div><span class="app-name">Grubhub</span><span class="n-time">now</span></div>
+          <div class="n-title">🍕 Dinner deals near you!</div>
+          <div class="n-body">Get 20% off tonight. Expires at midnight.</div>
+          <div class="banner-actions">
+            <button class="banner-btn bb-view" onclick="d9viewNow()">View Now</button>
+            <button class="banner-btn bb-batch" onclick="d9batchLater()">Batch for Later</button>
+          </div>
+        </div>
+        <button onclick="d9trigger()" style="position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:white;padding:8px 20px;border-radius:20px;font-size:12px;cursor:pointer;z-index:5">▶ Trigger notification</button>
+        <div class="bottom-bar"><div class="home-ind"></div></div>
+        <div class="toast" id="d9-toast"></div>
+      </div>
+
+      <!-- SCREEN 2: Notification center with batch tray -->
+      <div class="screen" id="d9s2">
+        <div class="lockbg"></div>
+        <div class="status-bar"><span class="st">9:41</span></div>
+        <div class="lock-time-block"><div class="lt">9:41</div><div class="ld">Notification Center</div></div>
+        <div class="nc-header"><span class="nc-title">Notification Center</span></div>
+        <div class="notif-list">
+          <div class="notif-wrap">
+            <div class="notif-card">
+              <div class="nh"><div class="app-icon" style="background:#25D366">💬</div><span class="app-name">WhatsApp</span><span class="n-time">2m</span></div>
+              <div class="n-title">Carlos: "Are you coming tonight?"</div>
+            </div>
+          </div>
+        </div>
+        <div class="batch-section">
+          <div class="section-label">📥 Scheduled — 6:00 PM</div>
+          <div class="batch-row">
+            <div class="app-icon" style="background:#FF9500;width:28px;height:28px;border-radius:8px;font-size:14px">📦</div>
+            <div class="b-text">
+              <div class="b-title">Grubhub · 1 notification</div>
+              <div class="b-sub">Dinner deals near you!</div>
+            </div>
+            <div class="b-time">~6h</div>
+          </div>
+        </div>
+        <div class="bottom-bar"><div class="home-ind"></div></div>
+      </div>
+
+      <!-- SCREEN 3: 6pm delivery -->
+      <div class="screen" id="d9s3">
+        <div class="lockbg" style="background:linear-gradient(175deg,#2d1b00,#0a0500)"></div>
+        <div class="status-bar"><span class="st">6:00</span></div>
+        <div class="lock-time-block"><div class="lt">6:00</div><div class="ld">Batch Delivered</div></div>
+        <div class="nc-header"><span class="nc-title">Notification Center</span></div>
+        <div class="notif-list">
+          <div class="notif-wrap">
+            <div class="notif-card" style="background:rgba(255,149,0,.15);border:1px solid rgba(255,149,0,.3)">
+              <div class="nh"><div class="app-icon" style="background:#FF9500">📦</div><span class="app-name">Grubhub</span><span class="n-time">batched</span></div>
+              <div class="n-title">🍕 Dinner deals near you!</div>
+              <div class="n-body">Batched from 9:41 AM · now delivered</div>
+            </div>
+          </div>
+          <div class="notif-wrap">
+            <div class="notif-card" style="background:rgba(0,122,255,.1);border:1px solid rgba(0,122,255,.22)">
+              <div class="nh"><div class="app-icon" style="background:#007AFF">📥</div><span class="app-name">Batch Summary</span><span class="n-time">now</span></div>
+              <div class="n-title">Your 6:00 PM batch is ready</div>
+              <div class="n-body">1 notification from Grubhub delivered.</div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-bar"><div class="home-ind"></div></div>
+      </div>
+
+    </div>
+    <div class="step-nav">
+      <div class="dot active" onclick="d9goto(0)"></div>
+      <div class="dot" onclick="d9goto(1)"></div>
+      <div class="dot" onclick="d9goto(2)"></div>
+    </div>
+    <div class="nav-hint">Tap "Trigger notification" → choose Batch for Later</div>
+    <div class="callout"><strong>Interaction:</strong> Trigger the Grubhub banner. Choose "Batch for Later." Dot 2 shows the notification center with the batch tray. Dot 3 shows 6 PM delivery.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     DESIGN 10 — Press & Hold → Quiet
+     ═══════════════════════════════════════════ -->
+<div class="proto" id="proto2">
+  <div class="design-label">Design 10 — Press &amp; Hold → Quiet</div>
+  <div class="design-desc">Long-pressing reveals a context menu with "Move to Quiet." Notification disappears from main feed. A Quiet button next to "Notification Center" lets you review silenced alerts.</div>
+  <div class="phone-outer">
+    <div class="iphone">
+
+      <!-- SCREEN 1: Notification center, normal -->
+      <div class="screen active" id="d10s1">
+        <div class="lockbg"></div>
+        <div class="status-bar"><span class="st">9:41</span></div>
+        <div class="lock-time-block"><div class="lt">9:41</div><div class="ld">Tuesday, March 11</div></div>
+        <div class="nc-header">
+          <span class="nc-title">Notification Center</span>
+          <button class="nc-btn" onclick="d10openQuiet()">🔕 Quiet (0)</button>
+        </div>
+        <div class="notif-list" id="d10-list">
+
+          <!-- Grubhub — long-pressable -->
+          <div class="notif-wrap" id="wrap-grub">
+            <div class="notif-card" id="card-grub"
+              oncontextmenu="return false"
+              ontouchstart="lpStart('grub',event)" ontouchend="lpCancel()" ontouchmove="lpCancel()"
+              onmousedown="lpStart('grub',event)" onmouseup="lpCancel()" onmouseleave="lpCancel()">
+              <div class="nh"><div class="app-icon" style="background:#FF9500">📦</div><span class="app-name">Grubhub</span><span class="n-time">now</span></div>
+              <div class="n-title">🍕 Dinner deals near you!</div>
+              <div class="n-body">Hold to see options</div>
+            </div>
+          </div>
+
+          <!-- WhatsApp -->
+          <div class="notif-wrap" id="wrap-wa2">
+            <div class="notif-card" id="card-wa2"
+              oncontextmenu="return false"
+              ontouchstart="lpStart('wa2',event)" ontouchend="lpCancel()" ontouchmove="lpCancel()"
+              onmousedown="lpStart('wa2',event)" onmouseup="lpCancel()" onmouseleave="lpCancel()">
+              <div class="nh"><div class="app-icon" style="background:#25D366">💬</div><span class="app-name">WhatsApp</span><span class="n-time">2m</span></div>
+              <div class="n-title">Carlos: "Are you coming tonight?"</div>
+              <div class="n-body">Hold to see options</div>
+            </div>
+          </div>
+
+          <!-- Instagram -->
+          <div class="notif-wrap" id="wrap-ig2">
+            <div class="notif-card" id="card-ig2"
+              oncontextmenu="return false"
+              ontouchstart="lpStart('ig2',event)" ontouchend="lpCancel()" ontouchmove="lpCancel()"
+              onmousedown="lpStart('ig2',event)" onmouseup="lpCancel()" onmouseleave="lpCancel()">
+              <div class="nh"><div class="app-icon" style="background:#E1306C">📸</div><span class="app-name">Instagram</span><span class="n-time">5m</span></div>
+              <div class="n-title">3 people liked your story</div>
+              <div class="n-body">Hold to see options</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Long-press context menu -->
+        <div id="lp-menu" style="
+          position:absolute; z-index:50; width:210px;
+          background:rgba(44,44,46,.97); backdrop-filter:blur(30px);
+          border-radius:16px; overflow:hidden;
+          box-shadow:0 20px 40px rgba(0,0,0,.6);
+          opacity:0; transform:scale(.85);
+          transition:all .2s cubic-bezier(.34,1.56,.64,1);
+          pointer-events:none; top:200px; left:50px;
+        " id="lp-menu">
+          <div class="menu-item" onclick="lpView()">View <span>👁</span></div>
+          <div class="menu-item" onclick="lpClear()">Clear <span>✕</span></div>
+          <div class="menu-item" onclick="lpQuiet()" style="color:var(--orange)">Move to Quiet <span>🔕</span></div>
+          <div class="menu-item" onclick="lpTurnOff()" style="color:var(--red); border-bottom:none">Turn Off App <span>🚫</span></div>
+        </div>
+
+        <div class="bottom-bar"><div class="home-ind"></div></div>
+        <div class="toast" id="d10-toast"></div>
+      </div>
+
+      <!-- Quiet panel (slides in over screen 1) -->
+      <div class="quiet-panel" id="d10-quiet-panel">
+        <div class="qp-header">
+          <button class="qp-back" onclick="d10closeQuiet()">‹ Back</button>
+          <div class="qp-title">Quiet Notifications</div>
+          <div style="width:50px"></div>
+        </div>
+        <div class="qp-sub">These notifications are silenced. They stay here for 30 days so nothing is permanently lost.</div>
+        <div class="qp-list" id="quiet-list">
+          <div style="color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:30px 0" id="quiet-empty">No quiet notifications yet</div>
+        </div>
+        <div class="bottom-bar"><div class="home-ind"></div></div>
+      </div>
+
+    </div>
+
+    <div class="step-nav">
+      <div class="dot active" id="d10-dot0"></div>
+    </div>
+    <div class="nav-hint">Hold a notification to see the context menu</div>
+    <div class="callout">
+      <strong>Hold</strong> any notification → select "Move to Quiet" → it disappears from the main feed.<br>
+      Tap the <strong>🔕 Quiet</strong> button to review silenced notifications.
+    </div>
+  </div>
+</div>
+
+<style>
+.menu-item {
+  padding:13px 16px; font-size:14px; color:white;
+  cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid rgba(255,255,255,.07); transition:background .1s;
+}
+.menu-item:active { background:rgba(255,255,255,.1); }
+</style>
+
+<script>
+// ── Tab switching ──
+function showProto(n) {
+  document.querySelectorAll('.proto').forEach((p,i) => p.classList.toggle('active', i===n));
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===n));
+}
+
+// ── Toast ──
+function showToast(id, msg, dur=2000) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── Utility: activate a screen within its parent iphone ──
+function activateScreen(screenId) {
+  const el = document.getElementById(screenId);
+  if (!el) return;
+  const phone = el.closest('.iphone');
+  phone.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active','slide-left');
+  });
+  el.classList.add('active');
+}
+
+// ═══════════════════════════════
+// DESIGN 3 — Swipe gestures
+// ═══════════════════════════════
+const BATCH_SHORT = 50;   // px to reveal button
+const BATCH_FULL  = 130;  // px for auto-batch
+const CLEAR_SHORT = 50;
+const CLEAR_FULL  = 130;
+
+let d3batched = [];
+
+function d3goto(n) {
+  document.querySelectorAll('#proto0 .dot').forEach((d,i) => d.classList.toggle('active',i===n));
+  ['d3s1','d3s2','d3s3'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    el.classList.toggle('active', i===n);
+    if(i!==n) el.classList.remove('slide-left');
+  });
+}
+
+function autoBatch(wrapId, cardId) {
+  const wrap = document.getElementById(wrapId);
+  if (wrap) {
+    wrap.style.opacity = '0';
+    wrap.style.maxHeight = wrap.offsetHeight + 'px';
+    setTimeout(() => { wrap.style.maxHeight = '0'; wrap.style.margin = '0'; wrap.style.overflow = 'hidden'; }, 200);
+    setTimeout(() => { wrap.style.display = 'none'; }, 400);
+  }
+  d3batched.push(cardId);
+  showToast('d3-toast', '📥 Batched for 6:00 PM');
+  setTimeout(() => { d3goto(1); }, 800);
+}
+
+function dismissCard(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.style.transition = 'opacity .2s, max-height .3s';
+  wrap.style.opacity = '0';
+  const h = wrap.offsetHeight;
+  wrap.style.maxHeight = h + 'px';
+  setTimeout(() => { wrap.style.maxHeight = '0'; wrap.style.margin = '0'; wrap.style.overflow = 'hidden'; }, 200);
+}
+
+// Swipe gesture engine
+(function() {
+  const SHORT_R = 50, FULL_R = 130, SHORT_L = 50, FULL_L = 130;
+  let active = null, startX = 0, startY = 0, curX = 0;
+  let listEl = null, widgetsEl = null;
+
+  function getCard(e) {
+    return e.target.closest('.notif-card[data-wrap]');
+  }
+
+  function onDown(e) {
+    const card = getCard(e);
+    listEl = document.getElementById('d3-list');
+    widgetsEl = document.getElementById('d3-widgets');
+    const pt = e.touches ? e.touches[0] : e;
+    startX = pt.clientX; startY = pt.clientY; curX = startX;
+
+    if (!card) {
+      // Track for widgets swipe on empty area
+      active = { type:'area' };
+      return;
+    }
+    // Reset other cards first
+    document.querySelectorAll('#d3-list .notif-card[data-wrap]').forEach(c => {
+      if (c !== card) snapBack(c);
+    });
+    active = { type:'card', card };
+  }
+
+  function onMove(e) {
+    if (!active) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const dx = pt.clientX - startX;
+    const dy = pt.clientY - startY;
+    curX = pt.clientX;
+
+    if (active.type === 'card') {
+      if (Math.abs(dy) > Math.abs(dx) + 10) { active = null; return; }
+      e.preventDefault();
+      const card = active.card;
+      card.style.transition = 'none';
+      card.style.transform = `translateX(${dx}px)`;
+      // Show action bg hint
+      const wrap = document.getElementById(card.dataset.wrap);
+      if (!wrap) return;
+      const rightBg = wrap.querySelector('.action-bg.right-actions');
+      const leftBg  = wrap.querySelector('.action-bg.left-actions');
+      if (dx > 0) {
+        if(rightBg) rightBg.style.opacity = Math.min(dx/FULL_R, 1);
+        if(leftBg)  leftBg.style.opacity  = 0;
+      } else {
+        if(leftBg)  leftBg.style.opacity  = Math.min(-dx/FULL_L, 1);
+        if(rightBg) rightBg.style.opacity = 0;
+      }
+    }
+  }
+
+  function onUp(e) {
+    if (!active) return;
+    const dx = curX - startX;
+
+    if (active.type === 'card') {
+      const card = active.card;
+      const wrap = document.getElementById(card.dataset.wrap);
+      const wrapId = card.dataset.wrap;
+      const cid = card.dataset.id;
+
+      if (dx > FULL_R) {
+        // Full right swipe → auto batch
+        autoBatch(wrapId, cid);
+      } else if (dx > SHORT_R) {
+        // Short right swipe → reveal batch button
+        card.classList.add('animating');
+        card.style.transform = `translateX(${SHORT_R + 16}px)`;
+        if (wrap) {
+          const rb = wrap.querySelector('.action-bg.right-actions');
+          if(rb) rb.style.opacity = '1';
+        }
+      } else if (dx < -FULL_L) {
+        // Full left swipe → clear
+        dismissCard(wrapId);
+      } else if (dx < -SHORT_L) {
+        // Short left swipe → reveal options+clear
+        card.classList.add('animating');
+        card.style.transform = `translateX(${-(SHORT_L + 20)}px)`;
+        if (wrap) {
+          const lb = wrap.querySelector('.action-bg.left-actions');
+          if(lb) lb.style.opacity = '1';
+        }
+      } else {
+        snapBack(card);
+      }
+    } else if (active.type === 'area' && dx > 60) {
+      // Swipe right on empty area → widgets
+      if (widgetsEl) widgetsEl.classList.add('open');
+    }
+
+    active = null;
+  }
+
+  function snapBack(card) {
+    card.classList.add('animating');
+    card.style.transform = 'translateX(0)';
+    const wrap = document.getElementById(card.dataset.wrap);
+    if (wrap) {
+      wrap.querySelectorAll('.action-bg').forEach(bg => bg.style.opacity = '0');
+    }
+    setTimeout(() => card.classList.remove('animating'), 300);
+  }
+
+  // Widgets close on left swipe
+  document.getElementById('d3-widgets').addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+  }, {passive:true});
+  document.getElementById('d3-widgets').addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (dx < -60) document.getElementById('d3-widgets').classList.remove('open');
+  }, {passive:true});
+  document.getElementById('d3-widgets').addEventListener('click', () => {
+    document.getElementById('d3-widgets').classList.remove('open');
+  });
+
+  // Attach to phone area
+  const phone = document.getElementById('d3-phone');
+  phone.addEventListener('pointerdown', onDown, {passive:true});
+  phone.addEventListener('pointermove', onMove, {passive:false});
+  phone.addEventListener('pointerup', onUp, {passive:true});
+  phone.addEventListener('pointercancel', () => { active=null; }, {passive:true});
+
+  // Touch passthrough
+  phone.addEventListener('touchstart', onDown, {passive:true});
+  phone.addEventListener('touchmove', onMove, {passive:false});
+  phone.addEventListener('touchend', onUp, {passive:true});
+})();
+
+// ═══════════════════════════════
+// DESIGN 9
+// ═══════════════════════════════
+let d9bannerShown = false;
+function d9trigger() {
+  if (d9bannerShown) return;
+  d9bannerShown = true;
+  document.getElementById('d9-banner').classList.add('show');
+}
+function d9viewNow() {
+  document.getElementById('d9-banner').classList.remove('show');
+  d9bannerShown = false;
+  showToast('d9-toast','📱 Opening Grubhub…');
+}
+function d9batchLater() {
+  document.getElementById('d9-banner').classList.remove('show');
+  d9bannerShown = false;
+  showToast('d9-toast','📥 Scheduled for 6:00 PM');
+  setTimeout(() => d9goto(1), 1200);
+}
+function d9goto(n) {
+  document.querySelectorAll('#proto1 .dot').forEach((d,i) => d.classList.toggle('active',i===n));
+  ['d9s1','d9s2','d9s3'].forEach((id,i) => {
+    document.getElementById(id).classList.toggle('active', i===n);
+  });
+  if (n===0) { d9bannerShown=false; document.getElementById('d9-banner').classList.remove('show'); }
+}
+
+// ═══════════════════════════════
+// DESIGN 10 — Long press + Quiet
+// ═══════════════════════════════
+let lpTimer = null;
+let lpCurrentId = null;
+let quietItems = [];
+let quietCount = 0;
+
+const cardMeta = {
+  grub: { icon:'📦', bg:'#FF9500', name:'Grubhub', title:'🍕 Dinner deals near you!', wrapId:'wrap-grub' },
+  wa2:  { icon:'💬', bg:'#25D366', name:'WhatsApp', title:'Carlos: "Are you coming tonight?"', wrapId:'wrap-wa2' },
+  ig2:  { icon:'📸', bg:'#E1306C', name:'Instagram', title:'3 people liked your story', wrapId:'wrap-ig2' },
+};
+
+function lpStart(id, e) {
+  lpCurrentId = id;
+  const card = document.getElementById('card-' + id);
+  lpTimer = setTimeout(() => openLpMenu(id, card), 600);
+}
+function lpCancel() {
+  clearTimeout(lpTimer);
+}
+
+function openLpMenu(id, card) {
+  const menu = document.getElementById('lp-menu');
+  const phone = card.closest('.iphone');
+  const cardRect = card.getBoundingClientRect();
+  const phoneRect = phone.getBoundingClientRect();
+  const top = cardRect.top - phoneRect.top + cardRect.height + 6;
+  let left = cardRect.left - phoneRect.left;
+  if (left + 210 > 310) left = 310 - 216;
+  menu.style.top = top + 'px';
+  menu.style.left = left + 'px';
+  menu.style.opacity = '1';
+  menu.style.transform = 'scale(1)';
+  menu.style.pointerEvents = 'auto';
+  card.style.transform = 'scale(0.97)';
+  lpCurrentId = id;
+  menuJustOpened = true;
+}
+
+function closeLpMenu() {
+  const menu = document.getElementById('lp-menu');
+  menu.style.opacity = '0';
+  menu.style.transform = 'scale(0.85)';
+  menu.style.pointerEvents = 'none';
+  // reset card scale
+  Object.keys(cardMeta).forEach(id => {
+    const c = document.getElementById('card-'+id);
+    if(c) c.style.transform = '';
+  });
+}
+
+function lpView() {
+  closeLpMenu();
+  showToast('d10-toast','📱 Opening app…');
+}
+function lpClear() {
+  closeLpMenu();
+  const meta = cardMeta[lpCurrentId];
+  if (!meta) return;
+  const wrap = document.getElementById(meta.wrapId);
+  if (wrap) { wrap.style.opacity='0'; setTimeout(()=>wrap.style.display='none',250); }
+  showToast('d10-toast','✓ Cleared');
+}
+function lpQuiet() {
+  closeLpMenu();
+  const id = lpCurrentId;
+  const meta = cardMeta[id];
+  if (!meta) return;
+  // Remove from main feed
+  const wrap = document.getElementById(meta.wrapId);
+  if (wrap) {
+    wrap.style.transition = 'opacity .25s';
+    wrap.style.opacity = '0';
+    setTimeout(() => { wrap.style.display = 'none'; }, 280);
+  }
+  // Add to quiet list
+  quietCount++;
+  quietItems.push(meta);
+  // Update button
+  document.querySelector('.nc-btn').textContent = `🔕 Quiet (${quietCount})`;
+  // Clear empty msg
+  document.getElementById('quiet-empty').style.display = 'none';
+  // Add to quiet panel list
+  const qlist = document.getElementById('quiet-list');
+  const qcard = document.createElement('div');
+  qcard.className = 'notif-wrap';
+  qcard.innerHTML = `
+    <div class="notif-card" style="background:rgba(255,149,0,.1);border:1px solid rgba(255,149,0,.18)">
+      <div class="nh">
+        <div class="app-icon" style="background:${meta.bg}">${meta.icon}</div>
+        <span class="app-name">${meta.name}</span>
+        <span class="n-time">quieted</span>
+      </div>
+      <div class="n-title">${meta.title}</div>
+      <div class="n-body" style="display:flex;gap:6px;margin-top:6px">
+        <button onclick="this.closest('.notif-wrap').remove();quietCount--;document.querySelector('.nc-btn').textContent='🔕 Quiet ('+quietCount+')';"
+          style="flex:1;padding:6px;border-radius:8px;border:none;background:rgba(255,255,255,.12);color:white;font-size:12px;font-weight:600;cursor:pointer">Restore</button>
+        <button onclick="this.closest('.notif-wrap').remove();quietCount--;document.querySelector('.nc-btn').textContent='🔕 Quiet ('+quietCount+')';"
+          style="flex:1;padding:6px;border-radius:8px;border:none;background:rgba(255,59,48,.7);color:white;font-size:12px;font-weight:600;cursor:pointer">Delete</button>
+      </div>
+    </div>`;
+  qlist.appendChild(qcard);
+  showToast('d10-toast', `🔕 ${meta.name} moved to Quiet`);
+}
+function lpTurnOff() {
+  closeLpMenu();
+  const meta = cardMeta[lpCurrentId];
+  if (!meta) return;
+  showToast('d10-toast', `🔕 ${meta.name} notifications off`);
+}
+
+function d10openQuiet() {
+  document.getElementById('d10-quiet-panel').classList.add('open');
+}
+function d10closeQuiet() {
+  document.getElementById('d10-quiet-panel').classList.remove('open');
+}
+
+// Close menu on outside tap — ignore the click that fired immediately after the long-press release
+let menuJustOpened = false;
+document.addEventListener('click', (e) => {
+  if (menuJustOpened) { menuJustOpened = false; return; }
+  const menu = document.getElementById('lp-menu');
+  if (menu && parseFloat(menu.style.opacity) > 0 && !menu.contains(e.target)) closeLpMenu();
+});
+</script>
+</body>
+</html>
